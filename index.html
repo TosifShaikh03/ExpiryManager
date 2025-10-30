@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MediTrack - Medicine Expiry Management</title>
+    <style>
+        :root {
+            --primary: #2c7fb8;
+            --secondary: #7fcdbb;
+            --danger: #ed553b;
+            --warning: #f6d55c;
+            --light: #f9f9f9;
+            --dark: #333;
+            --gray: #e0e0e0;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: #f5f7fa;
+            color: var(--dark);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        h1 {
+            font-size: 2.2rem;
+            font-weight: 600;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo i {
+            font-size: 2rem;
+        }
+        
+        .auth-section {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+        
+        .card-title {
+            font-size: 1.4rem;
+            margin-bottom: 20px;
+            color: var(--primary);
+            border-bottom: 2px solid var(--gray);
+            padding-bottom: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        
+        input, select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid var(--gray);
+            border-radius: 5px;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        input:focus, select:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #236a9c;
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #d1402a;
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+        
+        .btn-warning:hover {
+            background-color: #e4c247;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+        
+        th, td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid var(--gray);
+        }
+        
+        th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            color: var(--primary);
+            cursor: pointer;
+            user-select: none;
+        }
+        
+        th:hover {
+            background-color: #e8eff7;
+        }
+        
+        tr:hover {
+            background-color: #f8fafc;
+        }
+        
+        .expired {
+            background-color: rgba(237, 85, 59, 0.1);
+        }
+        
+        .expiring-soon {
+            background-color: rgba(246, 213, 92, 0.1);
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-expired {
+            background-color: var(--danger);
+            color: white;
+        }
+        
+        .status-warning {
+            background-color: var(--warning);
+            color: var(--dark);
+        }
+        
+        .status-ok {
+            background-color: var(--secondary);
+            color: white;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1.1rem;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background 0.3s;
+        }
+        
+        .edit-btn {
+            color: var(--primary);
+        }
+        
+        .delete-btn {
+            color: var(--danger);
+        }
+        
+        .action-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 10px 0;
+        }
+        
+        .stat-expired {
+            color: var(--danger);
+        }
+        
+        .stat-warning {
+            color: var(--warning);
+        }
+        
+        .stat-total {
+            color: var(--primary);
+        }
+        
+        .filter-container {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-select {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+        
+        .empty-state i {
+            font-size: 3rem;
+            margin-bottom: 15px;
+            color: #ccc;
+        }
+        
+        .auth-form {
+            max-width: 400px;
+            margin: 50px auto;
+        }
+        
+        .auth-form .card-title {
+            text-align: center;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .sort-indicator {
+            margin-left: 5px;
+            font-size: 0.8rem;
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .auth-section {
+                flex-direction: column;
+                gap: 10px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            th, td {
+                padding: 10px 5px;
+            }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-pills"></i>
+                    <h1>MediTrack - Expiry Management</h1>
+                </div>
+                <div class="auth-section" id="auth-section">
+                    <div id="user-info" class="user-info hidden">
+                        <span id="user-email"></span>
+                        <button id="logout-btn" class="btn btn-warning">Logout</button>
+                    </div>
+                    <div id="login-prompt">
+                        <button id="login-btn" class="btn btn-primary">Login</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Login Form -->
+        <div id="login-form" class="auth-form hidden">
+            <div class="card">
+                <h2 class="card-title">Login to MediTrack</h2>
+                <div class="form-group">
+                    <label for="login-email">Email</label>
+                    <input type="email" id="login-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="login-password">Password</label>
+                    <input type="password" id="login-password" placeholder="Enter your password">
+                </div>
+                <button id="do-login" class="btn btn-primary" style="width: 100%;">Login</button>
+                <p style="text-align: center; margin-top: 15px;">
+                    <small>Don't have an account? <a href="#" id="show-signup">Sign up here</a></small>
+                </p>
+            </div>
+        </div>
+
+        <!-- Signup Form -->
+        <div id="signup-form" class="auth-form hidden">
+            <div class="card">
+                <h2 class="card-title">Create Account</h2>
+                <div class="form-group">
+                    <label for="signup-email">Email</label>
+                    <input type="email" id="signup-email" placeholder="Enter your email">
+                </div>
+                <div class="form-group">
+                    <label for="signup-password">Password</label>
+                    <input type="password" id="signup-password" placeholder="Create a password">
+                </div>
+                <button id="do-signup" class="btn btn-primary" style="width: 100%;">Sign Up</button>
+                <p style="text-align: center; margin-top: 15px;">
+                    <small>Already have an account? <a href="#" id="show-login">Login here</a></small>
+                </p>
+            </div>
+        </div>
+
+        <!-- Main App (shown after login) -->
+        <div id="main-app" class="hidden">
+            <div class="stats-container">
+                <div class="stat-card">
+                    <div>Total Medicines</div>
+                    <div class="stat-value stat-total" id="total-medicines">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>Expiring Soon</div>
+                    <div class="stat-value stat-warning" id="expiring-soon">0</div>
+                </div>
+                <div class="stat-card">
+                    <div>Expired</div>
+                    <div class="stat-value stat-expired" id="expired-count">0</div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title">Add New Medicine</h2>
+                <form id="medicine-form">
+                    <div class="form-group">
+                        <label for="medicine-name">Medicine Name</label>
+                        <input type="text" id="medicine-name" placeholder="Enter medicine name" required 
+                               oninput="this.value = this.value.toUpperCase()">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="medicine-category">Category</label>
+                        <select id="medicine-category" required>
+                            <option value="">Select Category</option>
+                            <option value="Tablet">Tablet</option>
+                            <option value="Syrup">Syrup</option>
+                            <option value="Capsule">Capsule</option>
+                            <option value="Injection">Injection</option>
+                            <option value="Ointment">Ointment</option>
+                            <option value="Drops">Drops</option>
+                            <option value="Inhaler">Inhaler</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <!-- <div class="form-group">
+                        <label for="medicine-mrp">MRP (₹)</label>
+                        <input type="number" id="medicine-mrp" placeholder="Enter MRP" min="0" step="0.01" required>
+                    </div> -->
+                    
+                    <div class="form-group">
+                        <label for="expiry-date">Expiry Date</label>
+                        <input type="date" id="expiry-date" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Add Medicine
+                    </button>
+                </form>
+            </div>
+            
+            <div class="card">
+                <h2 class="card-title">Medicine Inventory</h2>
+                
+                <div class="filter-container">
+                    <div class="form-group filter-select">
+                        <label for="status-filter">Filter by Status</label>
+                        <select id="status-filter">
+                            <option value="all">All Medicines</option>
+                            <option value="expired">Expired</option>
+                            <option value="expiring">Expiring Soon (within 30 days)</option>
+                            <option value="safe">Safe</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group filter-select">
+                        <label for="category-filter">Filter by Category</label>
+                        <select id="category-filter">
+                            <option value="all">All Categories</option>
+                            <option value="Tablet">Tablet</option>
+                            <option value="Syrup">Syrup</option>
+                            <option value="Capsule">Capsule</option>
+                            <option value="Injection">Injection</option>
+                            <option value="Ointment">Ointment</option>
+                            <option value="Drops">Drops</option>
+                            <option value="Inhaler">Inhaler</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group filter-select">
+                        <label for="search">Search Medicine</label>
+                        <input type="text" id="search" placeholder="Search by name">
+                    </div>
+                </div>
+                
+                <div class="table-container">
+                    <table id="medicine-table">
+                        <thead>
+                            <tr>
+                                <th data-sort="name">Medicine Name <span class="sort-indicator">▼</span></th>
+                                <th data-sort="category">Category</th>
+                                <!-- <th data-sort="mrp">MRP (₹)</th> -->
+                                <th data-sort="expiryDate">Expiry Date</th>
+                                <th data-sort="status">Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="medicine-list">
+                            <!-- Medicine entries will be added here dynamically -->
+                        </tbody>
+                    </table>
+                    
+                    <div id="empty-state" class="empty-state">
+                        <i class="fas fa-box-open"></i>
+                        <h3>No medicines added yet</h3>
+                        <p>Add your first medicine using the form above.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+           apiKey: "AIzaSyCELDzEeIftr_-P70YyAqXC8Xv1SxbL9HI",
+  authDomain: "expirymanage.firebaseapp.com",
+  projectId: "expirymanage",
+  storageBucket: "expirymanage.firebasestorage.app",
+  messagingSenderId: "535617582285",
+  appId: "1:535617582285:web:777014d41760c0173d2584",
+  measurementId: "G-EHKNGLE1B3"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // DOM elements
+        const loginForm = document.getElementById('login-form');
+        const signupForm = document.getElementById('signup-form');
+        const mainApp = document.getElementById('main-app');
+        const authSection = document.getElementById('auth-section');
+        const userInfo = document.getElementById('user-info');
+        const loginPrompt = document.getElementById('login-prompt');
+        const userEmail = document.getElementById('user-email');
+        const loginBtn = document.getElementById('login-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+        const doLogin = document.getElementById('do-login');
+        const doSignup = document.getElementById('do-signup');
+        const showSignup = document.getElementById('show-signup');
+        const showLogin = document.getElementById('show-login');
+        const medicineForm = document.getElementById('medicine-form');
+        const medicineNameInput = document.getElementById('medicine-name');
+        const medicineList = document.getElementById('medicine-list');
+        const emptyState = document.getElementById('empty-state');
+        const statusFilter = document.getElementById('status-filter');
+        const categoryFilter = document.getElementById('category-filter');
+        const searchInput = document.getElementById('search');
+        const totalMedicinesEl = document.getElementById('total-medicines');
+        const expiringSoonEl = document.getElementById('expiring-soon');
+        const expiredCountEl = document.getElementById('expired-count');
+
+        // App state
+        let medicines = [];
+        let currentUser = null;
+        let currentSort = { field: 'status', direction: 'asc' };
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', function() {
+            // Auth state observer
+            auth.onAuthStateChanged(user => {
+                if (user) {
+                    currentUser = user;
+                    showApp();
+                } else {
+                    currentUser = null;
+                    showAuth();
+                }
+            });
+
+            // Auth event listeners
+            loginBtn.addEventListener('click', () => showLoginForm());
+            logoutBtn.addEventListener('click', () => auth.signOut());
+            doLogin.addEventListener('click', handleLogin);
+            doSignup.addEventListener('click', handleSignup);
+            showSignup.addEventListener('click', (e) => {
+                e.preventDefault();
+                showSignupForm();
+            });
+            showLogin.addEventListener('click', (e) => {
+                e.preventDefault();
+                showLoginForm();
+            });
+
+            // Medicine form submission
+            medicineForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                addMedicine();
+            });
+            
+            // Convert medicine name to uppercase as user types
+            medicineNameInput.addEventListener('input', function() {
+                this.value = this.value.toUpperCase();
+            });
+            
+            // Filter and search
+            statusFilter.addEventListener('change', renderMedicines);
+            categoryFilter.addEventListener('change', renderMedicines);
+            searchInput.addEventListener('input', renderMedicines);
+            
+            // Initialize table sorting after the main app is shown
+            setTimeout(initializeTableSorting, 100);
+        });
+
+        // Initialize table sorting
+        function initializeTableSorting() {
+            const sortableHeaders = document.querySelectorAll('th[data-sort]');
+            if (sortableHeaders.length > 0) {
+                sortableHeaders.forEach(th => {
+                    th.addEventListener('click', () => {
+                        const field = th.getAttribute('data-sort');
+                        sortMedicines(field);
+                    });
+                });
+            }
+        }
+
+        // Auth handlers
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            
+            auth.signInWithEmailAndPassword(email, password)
+                .then(() => {
+                    // Login successful
+                })
+                .catch(error => {
+                    alert('Login failed: ' + error.message);
+                });
+        }
+
+        function handleSignup() {
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            
+            auth.createUserWithEmailAndPassword(email, password)
+                .then(() => {
+                    // Signup successful
+                })
+                .catch(error => {
+                    alert('Signup failed: ' + error.message);
+                });
+        }
+
+        function showApp() {
+            loginForm.classList.add('hidden');
+            signupForm.classList.add('hidden');
+            mainApp.classList.remove('hidden');
+            userInfo.classList.remove('hidden');
+            loginPrompt.classList.add('hidden');
+            userEmail.textContent = currentUser.email;
+            
+            // Load user's medicines
+            loadMedicines();
+            
+            // Initialize table sorting after a short delay to ensure DOM is ready
+            setTimeout(initializeTableSorting, 100);
+        }
+
+        function showAuth() {
+            mainApp.classList.add('hidden');
+            userInfo.classList.add('hidden');
+            loginPrompt.classList.remove('hidden');
+            showLoginForm();
+        }
+
+        function showLoginForm() {
+            loginForm.classList.remove('hidden');
+            signupForm.classList.add('hidden');
+        }
+
+        function showSignupForm() {
+            signupForm.classList.remove('hidden');
+            loginForm.classList.add('hidden');
+        }
+
+        // Load medicines from Firestore
+        function loadMedicines() {
+            if (!currentUser) return;
+            
+            db.collection('medicines')
+                .where('userId', '==', currentUser.uid)
+                .onSnapshot(snapshot => {
+                    medicines = [];
+                    snapshot.forEach(doc => {
+                        const medicine = doc.data();
+                        medicine.id = doc.id;
+                        medicines.push(medicine);
+                    });
+                    
+                    // Sort by status (expired first, then expiring soon)
+                    sortMedicines('status');
+                    updateStats();
+                }, error => {
+                    console.error('Error loading medicines:', error);
+                });
+        }
+
+        // Add a new medicine to Firestore
+        function addMedicine() {
+            if (!currentUser) return;
+            
+            const name = document.getElementById('medicine-name').value.toUpperCase();
+            const category = document.getElementById('medicine-category').value;
+            // const mrp = parseFloat(document.getElementById('medicine-mrp').value);
+            const expiryDate = document.getElementById('expiry-date').value;
+            
+            const newMedicine = {
+                name,
+                category,
+                // mrp,
+                expiryDate,
+                userId: currentUser.uid,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+            
+            db.collection('medicines').add(newMedicine)
+                .then(() => {
+                    medicineForm.reset();
+                    // alert('Medicine added successfully!');
+                })
+                .catch(error => {
+                    alert('Error adding medicine: ' + error.message);
+                });
+        }
+
+        // Delete a medicine from Firestore
+        function deleteMedicine(id) {
+            if (confirm('Are you sure you want to delete this medicine?')) {
+                db.collection('medicines').doc(id).delete()
+                    .catch(error => {
+                        alert('Error deleting medicine: ' + error.message);
+                    });
+            }
+        }
+
+        // Edit a medicine
+        function editMedicine(id) {
+            const medicine = medicines.find(m => m.id === id);
+            if (medicine) {
+                document.getElementById('medicine-name').value = medicine.name;
+                document.getElementById('medicine-category').value = medicine.category;
+                // document.getElementById('medicine-mrp').value = medicine.mrp;
+                document.getElementById('expiry-date').value = medicine.expiryDate;
+                
+                // Remove the medicine being edited
+                deleteMedicine(id);
+            }
+        }
+
+        // Sort medicines
+        function sortMedicines(field) {
+            // Update current sort
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+            
+            // Update sort indicators - safely check if elements exist
+            const sortableHeaders = document.querySelectorAll('th[data-sort]');
+            if (sortableHeaders.length > 0) {
+                sortableHeaders.forEach(th => {
+                    let indicator = th.querySelector('.sort-indicator');
+                    // Create indicator if it doesn't exist
+                    if (!indicator) {
+                        indicator = document.createElement('span');
+                        indicator.className = 'sort-indicator';
+                        th.appendChild(indicator);
+                    }
+                    
+                    if (th.getAttribute('data-sort') === field) {
+                        indicator.textContent = currentSort.direction === 'asc' ? '▲' : '▼';
+                    } else {
+                        indicator.textContent = '';
+                    }
+                });
+            }
+            
+            // Sort the medicines array
+            medicines.sort((a, b) => {
+                let aValue = a[field];
+                let bValue = b[field];
+                
+                // Special handling for status sorting
+                if (field === 'status') {
+                    aValue = getStatusPriority(a.expiryDate);
+                    bValue = getStatusPriority(b.expiryDate);
+                }
+                
+                // Handle different data types
+                if (typeof aValue === 'string') {
+                    aValue = aValue.toLowerCase();
+                    bValue = bValue.toLowerCase();
+                }
+                
+                if (aValue < bValue) return currentSort.direction === 'asc' ? -1 : 1;
+                if (aValue > bValue) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+            
+            renderMedicines();
+        }
+
+        // Get status priority for sorting (expired first, then expiring soon)
+        function getStatusPriority(expiryDate) {
+            const daysUntilExpiry = getDaysUntilExpiry(expiryDate);
+            if (daysUntilExpiry < 0) return 0; // Expired - highest priority
+            if (daysUntilExpiry <= 30) return 1; // Expiring soon
+            return 2; // Safe
+        }
+
+        // Render medicines in the table
+        function renderMedicines() {
+            const statusFilterValue = statusFilter.value;
+            const categoryFilterValue = categoryFilter.value;
+            const searchValue = searchInput.value.toLowerCase();
+            
+            // Filter medicines based on status, category and search
+            let filteredMedicines = medicines.filter(medicine => {
+                const matchesStatus = statusFilterValue === 'all' || 
+                    (statusFilterValue === 'expired' && getDaysUntilExpiry(medicine.expiryDate) < 0) ||
+                    (statusFilterValue === 'expiring' && getDaysUntilExpiry(medicine.expiryDate) >= 0 && getDaysUntilExpiry(medicine.expiryDate) <= 30) ||
+                    (statusFilterValue === 'safe' && getDaysUntilExpiry(medicine.expiryDate) > 30);
+                
+                const matchesCategory = categoryFilterValue === 'all' || medicine.category === categoryFilterValue;
+                
+                const matchesSearch = medicine.name.toLowerCase().includes(searchValue);
+                
+                return matchesStatus && matchesCategory && matchesSearch;
+            });
+            
+            // Clear the table
+            medicineList.innerHTML = '';
+            
+            // Show empty state if no medicines
+            if (filteredMedicines.length === 0) {
+                emptyState.style.display = 'block';
+                return;
+            } else {
+                emptyState.style.display = 'none';
+            }
+            
+            // Add medicines to the table
+            filteredMedicines.forEach(medicine => {
+                const daysUntilExpiry = getDaysUntilExpiry(medicine.expiryDate);
+                let statusClass = '';
+                let statusText = '';
+                
+                if (daysUntilExpiry < 0) {
+                    statusClass = 'status-expired';
+                    statusText = 'Expired';
+                } else if (daysUntilExpiry <= 30) {
+                    statusClass = 'status-warning';
+                    statusText = 'Expiring Soon';
+                } else {
+                    statusClass = 'status-ok';
+                    statusText = 'Safe';
+                }
+                
+                const row = document.createElement('tr');
+                if (daysUntilExpiry < 0) {
+                    row.classList.add('expired');
+                } else if (daysUntilExpiry <= 30) {
+                    row.classList.add('expiring-soon');
+                }
+                
+                row.innerHTML = `
+                    <td>${medicine.name}</td>
+                    <td>${medicine.category}</td>
+                    <td>${formatDate(medicine.expiryDate)}</td>
+                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="action-btn edit-btn" onclick="editMedicine('${medicine.id}')">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="action-btn delete-btn" onclick="deleteMedicine('${medicine.id}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </td>
+                `;
+                
+                medicineList.appendChild(row);
+            });
+        }
+
+        // Update statistics
+        function updateStats() {
+            totalMedicinesEl.textContent = medicines.length;
+            
+            const expiredCount = medicines.filter(medicine => 
+                getDaysUntilExpiry(medicine.expiryDate) < 0
+            ).length;
+            
+            const expiringSoonCount = medicines.filter(medicine => {
+                const days = getDaysUntilExpiry(medicine.expiryDate);
+                return days >= 0 && days <= 30;
+            }).length;
+            
+            expiredCountEl.textContent = expiredCount;
+            expiringSoonEl.textContent = expiringSoonCount;
+        }
+
+        // Helper function to calculate days until expiry
+        function getDaysUntilExpiry(expiryDate) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const expiry = new Date(expiryDate);
+            const diffTime = expiry - today;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays;
+        }
+
+        // Helper function to format date
+        function formatDate(dateString) {
+            const options = { year: 'numeric', month: 'short', day: 'numeric' };
+            return new Date(dateString).toLocaleDateString('en-US', options);
+        }
+    </script>
+</body>
+</html>
