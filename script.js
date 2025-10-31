@@ -40,7 +40,6 @@ const expiringSoonEl = document.getElementById('expiring-soon');
 const expiredCountEl = document.getElementById('expired-count');
 
 // Calendar elements
-const expiryDay = document.getElementById('expiry-day');
 const expiryMonth = document.getElementById('expiry-month');
 const expiryYear = document.getElementById('expiry-year');
 const expiryDate = document.getElementById('expiry-date');
@@ -115,82 +114,45 @@ function initializeCalendarDropdowns() {
         expiryYear.appendChild(option);
     }
     
-    // Populate days (will be updated based on month selection)
-    updateDaysDropdown();
-    
     // Add event listeners
-    expiryMonth.addEventListener('change', updateDaysDropdown);
-    expiryYear.addEventListener('change', updateDaysDropdown);
-    expiryDay.addEventListener('change', updateHiddenDate);
     expiryMonth.addEventListener('change', updateHiddenDate);
     expiryYear.addEventListener('change', updateHiddenDate);
     
-    // Set current date as default
-    setCurrentDate();
-}
-
-function updateDaysDropdown() {
-    const selectedMonth = parseInt(expiryMonth.value);
-    const selectedYear = parseInt(expiryYear.value);
-    
-    if (!selectedMonth || !selectedYear) {
-        expiryDay.innerHTML = '<option value="">Day</option>';
-        return;
-    }
-    
-    // Get days in month
-    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate();
-    
-    // Save current selected day
-    const currentDay = expiryDay.value;
-    
-    // Repopulate days
-    expiryDay.innerHTML = '<option value="">Day</option>';
-    for (let i = 1; i <= daysInMonth; i++) {
-        const option = document.createElement('option');
-        option.value = i.toString().padStart(2, '0');
-        option.textContent = i;
-        expiryDay.appendChild(option);
-    }
-    
-    // Restore selected day if it exists and is valid
-    if (currentDay && parseInt(currentDay) <= daysInMonth) {
-        expiryDay.value = currentDay;
-    }
-    
-    updateHiddenDate();
+    // Set current date as default (first day of next month for better UX)
+    setDefaultDate();
 }
 
 function updateHiddenDate() {
-    const day = expiryDay.value;
     const month = expiryMonth.value;
     const year = expiryYear.value;
     
-    if (day && month && year) {
-        expiryDate.value = `${year}-${month}-${day}`;
+    if (month && year) {
+        // Set to first day of the month for consistency
+        expiryDate.value = `${year}-${month}-01`;
     } else {
         expiryDate.value = '';
     }
 }
 
-function setCurrentDate() {
+function setDefaultDate() {
     const today = new Date();
-    expiryDay.value = today.getDate().toString().padStart(2, '0');
-    expiryMonth.value = (today.getMonth() + 1).toString().padStart(2, '0');
+    // Set to next month by default for better user experience
+    expiryMonth.value = (today.getMonth() + 2).toString().padStart(2, '0');
     expiryYear.value = today.getFullYear();
+    
+    // If December, adjust year
+    if (parseInt(expiryMonth.value) > 12) {
+        expiryMonth.value = '01';
+        expiryYear.value = today.getFullYear() + 1;
+    }
+    
     updateHiddenDate();
 }
 
-function setQuickDate(daysToAdd = 0, monthsToAdd = 0) {
+function setQuickDate(monthsToAdd = 0) {
     const date = new Date();
-    if (daysToAdd !== 0) {
-        date.setDate(date.getDate() + daysToAdd);
-    }
-    if (monthsToAdd !== 0) {
-        date.setMonth(date.getMonth() + monthsToAdd);
-    }
+    date.setMonth(date.getMonth() + monthsToAdd);
     
-    expiryDay.value = date.getDate().toString().padStart(2, '0');
     expiryMonth.value = (date.getMonth() + 1).toString().padStart(2, '0');
     expiryYear.value = date.getFullYear();
     updateHiddenDate();
@@ -299,7 +261,7 @@ function addMedicine() {
     const expiryDateValue = document.getElementById('expiry-date').value;
     
     if (!expiryDateValue) {
-        alert('Please select a valid expiry date');
+        alert('Please select a valid expiry month and year');
         return;
     }
     
@@ -314,7 +276,7 @@ function addMedicine() {
     db.collection('medicines').add(newMedicine)
         .then(() => {
             medicineForm.reset();
-            setCurrentDate(); // Reset to current date
+            setDefaultDate(); // Reset to default date
         })
         .catch(error => {
             alert('Error adding medicine: ' + error.message);
@@ -341,7 +303,6 @@ function editMedicine(id) {
         
         // Set the calendar dropdowns
         const expiryDate = new Date(medicine.expiryDate);
-        expiryDay.value = expiryDate.getDate().toString().padStart(2, '0');
         expiryMonth.value = (expiryDate.getMonth() + 1).toString().padStart(2, '0');
         expiryYear.value = expiryDate.getFullYear();
         updateHiddenDate();
@@ -583,9 +544,9 @@ function getDaysUntilExpiry(expiryDate) {
     return diffDays;
 }
 
-// Helper function to format date
+// Helper function to format date (shows only month and year)
 function formatDate(dateString) {
-    const options = { year: 'numeric', month: 'short', day: 'numeric' };
+    const options = { year: 'numeric', month: 'long' };
     return new Date(dateString).toLocaleDateString('en-US', options);
 }
 
@@ -595,9 +556,7 @@ window.addEventListener('resize', function() {
 });
 
 // Quick date functions for buttons
-function setToday() { setQuickDate(0, 0); }
-function setTomorrow() { setQuickDate(1, 0); }
-function setNextWeek() { setQuickDate(7, 0); }
-function setNextMonth() { setQuickDate(0, 1); }
-function setThreeMonths() { setQuickDate(0, 3); }
-function setSixMonths() { setQuickDate(0, 6); }
+function setNextMonth() { setQuickDate(1); }
+function setThreeMonths() { setQuickDate(3); }
+function setSixMonths() { setQuickDate(6); }
+function setOneYear() { setQuickDate(12); }
