@@ -1,16 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MediTrack - Medicine Expiry Management</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">    
+    <!-- OCR Library -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     <!-- Firebase SDK -->
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
     <header>
         <div class="container">
@@ -31,7 +35,7 @@
             </div>
         </div>
     </header>
-    
+
     <div class="container">
         <!-- Login Form -->
         <div id="login-form" class="auth-form hidden">
@@ -62,7 +66,7 @@
                 </div>
                 <div class="form-group">
                     <label for="signup-password">Password</label>
-                    <input type="password" id="signup-password" placeholder="Create a password">
+                    <input type="password" id="signup-password" placeholder="Create a password (min. 6 characters)">
                 </div>
                 <button id="do-signup" class="btn btn-primary" style="width: 100%;">Sign Up</button>
                 <p style="text-align: center; margin-top: 15px;">
@@ -73,145 +77,230 @@
 
         <!-- Main App (shown after login) -->
         <div id="main-app" class="hidden">
-            <div class="stats-container">
-                <div class="stat-card">
-                    <div>Total Medicines</div>
-                    <div class="stat-value stat-total" id="total-medicines">0</div>
-                </div>
-                <div class="stat-card">
-                    <div>Expiring Soon</div>
-                    <div class="stat-value stat-warning" id="expiring-soon">0</div>
-                </div>
-                <div class="stat-card">
-                    <div>Expired</div>
-                    <div class="stat-value stat-expired" id="expired-count">0</div>
-                </div>
+            <!-- Tabs Navigation -->
+            <div class="tabs">
+                <div class="tab active" data-tab="manual">Manual Entry</div>
+                <div class="tab" data-tab="scan">Scan Bill</div>
+                <div class="tab" data-tab="inventory">Inventory</div>
             </div>
-            
-            <div class="card">
-                <h2 class="card-title">Add New Medicine</h2>
-                <form id="medicine-form">
-                    <div class="form-group">
-                        <label for="medicine-name">Medicine Name</label>
-                        <input type="text" id="medicine-name" placeholder="Enter medicine name" required 
-                               oninput="this.value = this.value.toUpperCase()">
+
+            <!-- Manual Entry Tab -->
+            <div id="manual-tab" class="tab-content active">
+                <div class="stats-container">
+                    <div class="stat-card">
+                        <div>Total Medicines</div>
+                        <div class="stat-value stat-total" id="total-medicines">0</div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="medicine-category">Category</label>
-                        <select id="medicine-category" required>
-                            <option value="">Select Category</option>
-                            <option value="Tablet">Tablet</option>
-                            <option value="Syrup">Syrup</option>
-                            <option value="Capsule">Capsule</option>
-                            <option value="Injection">Injection</option>
-                            <option value="Ointment">Ointment</option>
-                            <option value="Drops">Drops</option>
-                            <option value="Inhaler">Inhaler</option>
-                            <option value="Other">Other</option>
-                        </select>
+                    <div class="stat-card">
+                        <div>Expiring Soon</div>
+                        <div class="stat-value stat-warning" id="expiring-soon">0</div>
                     </div>
-                    
-                    <div class="form-group">
-                        <label for="expiry-date">Expiry Date</label>
-                        <div class="dropdown-calendar">
-                           <!--  <select id="expiry-day" class="date-dropdown">
-                                <option value="">Day</option>
-                            </select> -->
-                            <select id="expiry-month" class="date-dropdown">
-                                <option value="">Month</option>
-                                <option value="01">January</option>
-                                <option value="02">February</option>
-                                <option value="03">March</option>
-                                <option value="04">April</option>
-                                <option value="05">May</option>
-                                <option value="06">June</option>
-                                <option value="07">July</option>
-                                <option value="08">August</option>
-                                <option value="09">September</option>
-                                <option value="10">October</option>
-                                <option value="11">November</option>
-                                <option value="12">December</option>
-                            </select>
-                            <select id="expiry-year" class="date-dropdown">
-                                <option value="">Year</option>
+                    <div class="stat-card">
+                        <div>Expired</div>
+                        <div class="stat-value stat-expired" id="expired-count">0</div>
+                    </div>
+                    <div class="stat-card">
+                        <div>Safe</div>
+                        <div class="stat-value stat-safe" id="safe-count">0</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2>Add New Medicine</h2>
+                    <form id="medicine-form">
+                        <div class="form-group">
+                            <label for="medicine-name">Medicine Name</label>
+                            <input type="text" id="medicine-name" placeholder="Enter medicine name" required
+                                oninput="this.value = this.value.toUpperCase()">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="medicine-category">Category</label>
+                            <select id="medicine-category" required>
+                                <option value="">Select Category</option>
+                                <option value="Tablet">Tablet</option>
+                                <option value="Syrup">Syrup</option>
+                                <option value="Capsule">Capsule</option>
+                                <option value="Injection">Injection</option>
+                                <option value="Ointment">Ointment</option>
+                                <option value="Drops">Drops</option>
+                                <option value="Inhaler">Inhaler</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
-                        <input type="hidden" id="expiry-date" required>
-                    </div>
-                    
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-plus-circle"></i> Add Medicine
-                    </button>
-                </form>
+
+                        <div class="form-group">
+                            <label for="expiry-date">Expiry Date</label>
+                            <div class="dropdown-calendar">
+                                <select id="expiry-month" class="date-dropdown" required>
+                                    <option value="">Month</option>
+                                    <option value="01">January</option>
+                                    <option value="02">February</option>
+                                    <option value="03">March</option>
+                                    <option value="04">April</option>
+                                    <option value="05">May</option>
+                                    <option value="06">June</option>
+                                    <option value="07">July</option>
+                                    <option value="08">August</option>
+                                    <option value="09">September</option>
+                                    <option value="10">October</option>
+                                    <option value="11">November</option>
+                                    <option value="12">December</option>
+                                </select>
+                                <select id="expiry-year" class="date-dropdown" required>
+                                    <option value="">Year</option>
+                                </select>
+                            </div>
+                            <input type="hidden" id="expiry-date" required>
+                        </div>
+
+                        <!-- <div class="form-group">
+                            <label for="quantity">Quantity</label>
+                            <input type="number" id="quantity" placeholder="Enter quantity" min="1" value="1">
+                        </div> -->
+
+                        <div class="form-group">
+                            <label for="notes">Notes (Optional)</label>
+                            <textarea id="notes" placeholder="Add any additional notes" rows="3"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-plus-circle"></i> Add Medicine
+                        </button>
+                    </form>
+                </div>
             </div>
-            
-            <div class="card">
-                <h2 class="card-title">Medicine Inventory</h2>
-                
-                <div class="filter-container">
-                    <div class="form-group filter-select">
-                        <label for="status-filter">Filter by Status</label>
-                        <select id="status-filter">
-                            <option value="all">All Medicines</option>
-                            <option value="expired">Expired</option>
-                            <option value="expiring">Expiring Soon (within 30 days)</option>
-                            <option value="safe">Safe</option>
-                        </select>
+
+            <!-- Scan Bill Tab -->
+            <div id="scan-tab" class="tab-content">
+                <div class="card">
+                    <h2><i class="fas fa-camera"></i> Scan Bill for Medicines</h2>
+                    <p class="mb-20">Upload an image of your medical bill to automatically extract medicine names and
+                        expiry dates.</p>
+
+                    <div class="upload-section">
+                        <div class="upload-area" id="dropZone">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p>Drag & drop your bill image here</p>
+                            <p class="upload-or">or</p>
+                            <div class="upload-btn-wrapper">
+                                <button class="btn btn-primary">
+                                    <i class="fas fa-folder-open"></i> Choose File
+                                </button>
+                                <input type="file" id="imageInput" accept="image/*" />
+                            </div>
+                            <p class="upload-hint">Supports JPG, PNG formats</p>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-success btn-scan" onclick="scanBill()">
+                                <i class="fas fa-search"></i> Scan Bill
+                            </button>
+                            <button class="btn btn-secondary" id="clearScan">
+                                <i class="fas fa-trash"></i> Clear
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="form-group filter-select">
-                        <label for="category-filter">Filter by Category</label>
-                        <select id="category-filter">
-                            <option value="all">All Categories</option>
-                            <option value="Tablet">Tablet</option>
-                            <option value="Syrup">Syrup</option>
-                            <option value="Capsule">Capsule</option>
-                            <option value="Injection">Injection</option>
-                            <option value="Ointment">Ointment</option>
-                            <option value="Drops">Drops</option>
-                            <option value="Inhaler">Inhaler</option>
-                            <option value="Other">Other</option>
-                        </select>
+
+                    <div id="scan-results" class="hidden">
+                        <h3>Scan Results</h3>
+                        <div id="ocr-output" class="ocr-results"></div>
+                        <div class="text-center mt-20">
+                            <button class="btn btn-primary" onclick="addAllScannedMedicines()">
+                                <i class="fas fa-save"></i> Add All to Inventory
+                            </button>
+                        </div>
                     </div>
-                    
-                    <div class="form-group filter-select">
-                        <label for="search">Search Medicine</label>
-                        <input type="text" id="search" placeholder="Search by name">
+
+                    <div id="scan-loading" class="hidden">
+                        <div class="spinner"></div>
+                        <p class="text-center">Scanning bill... This may take a moment.</p>
                     </div>
                 </div>
-                
-                <div class="table-container">
-                    <table id="medicine-table">
-                        <thead>
-                            <tr>
-                                <th data-sort="name">Medicine Name <span class="sort-indicator">▼</span></th>
-                                <th data-sort="category">Category</th>
-                                <th data-sort="expiryDate">Expiry Date</th>
-                                <th data-sort="status">Status</th>
-                                <th class="actions-header">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="medicine-list">
-                            <!-- Medicine entries will be added here dynamically -->
-                        </tbody>
-                    </table>
-                    
-                    <div id="empty-state" class="empty-state">
-                        <i class="fas fa-box-open"></i>
-                        <h3>No medicines added yet</h3>
-                        <p>Add your first medicine using the form above.</p>
+            </div>
+
+            <!-- Inventory Tab -->
+            <div id="inventory-tab" class="tab-content">
+                <div class="card">
+                    <h2>Medicine Inventory</h2>
+
+                    <div class="filter-container">
+                        <div class="form-group filter-select">
+                            <label for="status-filter">Filter by Status</label>
+                            <select id="status-filter">
+                                <option value="all">All Medicines</option>
+                                <option value="expired">Expired</option>
+                                <option value="expiring">Expiring Soon (within 30 days)</option>
+                                <option value="safe">Safe</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group filter-select">
+                            <label for="category-filter">Filter by Category</label>
+                            <select id="category-filter">
+                                <option value="all">All Categories</option>
+                                <option value="Tablet">Tablet</option>
+                                <option value="Syrup">Syrup</option>
+                                <option value="Capsule">Capsule</option>
+                                <option value="Injection">Injection</option>
+                                <option value="Ointment">Ointment</option>
+                                <option value="Drops">Drops</option>
+                                <option value="Inhaler">Inhaler</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group filter-select">
+                            <label for="search">Search Medicine</label>
+                            <input type="text" id="search" placeholder="Search by name">
+                        </div>
+                    </div>
+
+                    <!-- In index.html, add this in the Inventory tab section, after the filter-container -->
+                    <div class="print-controls">
+                        <button id="print-btn" class="btn btn-secondary">
+                            <i class="fas fa-print"></i> Print Inventory
+                        </button>
+                        <button id="print-expiring-btn" class="btn btn-warning">
+                            <i class="fas fa-exclamation-triangle"></i> Print Expiring Soon
+                        </button>
+                        <button id="print-expired-btn" class="btn btn-danger">
+                            <i class="fas fa-skull-crossbones"></i> Print Expired
+                        </button>
+                    </div>
+
+                    <div class="table-container">
+                        <table id="medicine-table">
+                            <thead>
+                                <tr>
+                                    <th data-sort="name">Medicine Name <span class="sort-indicator">▼</span></th>
+                                    <th data-sort="category">Category</th>
+                                    <th data-sort="expiryDate">Expiry Date</th>
+                                    <th data-sort="status">Status</th>
+                                    <!-- <th data-sort="quantity">Quantity</th> -->
+                                    <th class="actions-header">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="medicine-list">
+                                <!-- Medicine entries will be added here dynamically -->
+                            </tbody>
+                        </table>
+
+                        <div id="empty-state" class="empty-state">
+                            <i class="fas fa-box-open"></i>
+                            <h3>No medicines added yet</h3>
+                            <p>Add your first medicine using the form above or scan a bill.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Mobile Action Menu -->
-    <div id="mobile-action-menu" class="action-menu-mobile hidden">
-        <!-- Mobile action menu content will be generated by JavaScript -->
-    </div>
+    <!-- Mobile Action Menu (hidden by default) -->
+    <div id="mobile-action-menu" class="hidden"></div>
 
     <script src="script.js"></script>
 </body>
+
 </html>
