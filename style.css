@@ -695,3 +695,283 @@
           max-width: 800px;
           margin: 0 auto;
         }
+
+        /* Scan results styling */
+.ocr-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 15px;
+    border-bottom: 1px solid #eee;
+    background: #fafafa;
+    border-radius: 5px;
+    margin-bottom: 8px;
+}
+
+.ocr-item:hover {
+    background: #f0f7ff;
+}
+
+.ocr-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.ocr-actions .btn-sm {
+    padding: 5px 10px;
+    font-size: 12px;
+}
+
+.edit-scan-form {
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.upload-area {
+    cursor: pointer;
+    border: 2px dashed var(--gray);
+    border-radius: 10px;
+    padding: 40px 20px;
+    text-align: center;
+    background: #fafafa;
+    transition: all 0.3s ease;
+    margin-bottom: 20px;
+}
+
+.upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(44, 127, 184, 0.05);
+}
+
+.upload-btn-wrapper {
+    position: relative;
+    display: inline-block;
+    overflow: hidden;
+}
+
+.upload-btn-wrapper input[type=file] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Mobile Action Menu */
+.mobile-action-menu {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    display: flex;
+    align-items: flex-end;
+}
+
+.mobile-action-menu.hidden {
+    display: none;
+}
+
+.mobile-menu-content {
+    background: white;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    padding: 20px;
+    box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+    animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+.mobile-menu-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.mobile-menu-header h3 {
+    margin: 0;
+    font-size: 18px;
+    color: var(--dark);
+    max-width: 80%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mobile-menu-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.mobile-menu-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mobile-action-btn {
+    padding: 15px;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.2s;
+}
+
+.mobile-action-btn i {
+    font-size: 18px;
+}
+
+.edit-mobile-btn {
+    background: var(--warning-light);
+    color: var(--warning-dark);
+}
+
+.edit-mobile-btn:hover {
+    background: var(--warning);
+    color: white;
+}
+
+.delete-mobile-btn {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+
+.delete-mobile-btn:hover {
+    background: var(--danger);
+    color: white;
+}
+
+.cancel-mobile-btn {
+    background: #f5f5f5;
+    color: #666;
+    margin-top: 10px;
+}
+
+.cancel-mobile-btn:hover {
+    background: #e5e5e5;
+}
+
+/* Mobile table adjustments */
+@media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    #medicine-table {
+        min-width: 600px; /* Ensure table is wide enough */
+    }
+    
+    .action-buttons-cell {
+        min-width: 100px; /* Ensure action buttons are visible */
+    }
+    
+    /* Make table rows more tappable on mobile */
+    tr {
+        cursor: pointer;
+    }
+    
+    tr:hover {
+        background-color: #f9f9f9;
+    }
+    
+    /* Hide the actions header on mobile */
+    .actions-header {
+        position: relative;
+    }
+    
+    .actions-header::after {
+        content: "Actions";
+        position: absolute;
+        right: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 12px;
+        color: #666;
+    }
+}
+
+/* Swipe actions for mobile */
+@media (max-width: 768px) {
+    .table-container {
+        position: relative;
+    }
+    
+    #medicine-table {
+        position: relative;
+    }
+    
+    tr {
+        position: relative;
+        transition: transform 0.3s ease;
+    }
+    
+    .swipe-actions {
+        position: absolute;
+        right: 0;
+        top: 0;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        background: linear-gradient(to left, rgba(255,255,255,0.9), rgba(255,255,255,1));
+        padding: 0 10px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        pointer-events: none;
+    }
+    
+    tr.swiping .swipe-actions {
+        opacity: 1;
+        pointer-events: all;
+    }
+    
+    .swipe-action-btn {
+        padding: 8px 12px;
+        margin: 0 5px;
+        border: none;
+        border-radius: 5px;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .swipe-edit-btn {
+        background: var(--warning);
+        color: white;
+    }
+    
+    .swipe-delete-btn {
+        background: var(--danger);
+        color: white;
+    }
+}
