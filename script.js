@@ -29,8 +29,14 @@ let currentUser = null;
 let medicines = [];
 let scannedMedicines = [];
 let currentSort = { field: 'expiryDate', direction: 'asc' };
+let isScanning = false;
+let editingScannedIndex = null;
 
 // DOM Elements
+document.getElementById("imageInput")
+document.getElementById("scanBtn")
+document.getElementById("ocrResults")
+
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
 const mainApp = document.getElementById('main-app');
@@ -454,8 +460,7 @@ function formatExpiryDate(dateStr) {
   }
 }
 
-
-// Edit medicine
+// Edit medicine from inventory
 function editMedicine(id) {
   const medicine = medicines.find(m => m.id === id);
   if (!medicine) {
@@ -471,12 +476,6 @@ function editMedicine(id) {
   document.getElementById('expiry-year').value = year;
   document.getElementById('notes').value = medicine.notes || '';
 
-  // Check if quantity field exists before trying to set it
-  const quantityInput = document.getElementById('quantity');
-  if (quantityInput) {
-    quantityInput.value = medicine.quantity || 1;
-  }
-
   // Set edit mode on form
   medicineForm.dataset.editingId = id;
   
@@ -485,13 +484,19 @@ function editMedicine(id) {
   submitBtn.innerHTML = '<i class="fas fa-save"></i> Update Medicine';
   submitBtn.className = 'btn btn-warning';
 
+  // Show cancel button
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  if (cancelBtn) {
+    cancelBtn.style.display = 'inline-block';
+  }
+
   // Switch to manual tab
   switchToTab('manual');
 
   showNotification('Edit mode activated. Update fields and click "Update Medicine"', 'info');
 }
 
-// Medicine Form Submission - FIXED VERSION
+// Medicine Form Submission
 medicineForm.addEventListener('submit', function (e) {
   e.preventDefault();
 
@@ -509,11 +514,35 @@ medicineForm.addEventListener('submit', function (e) {
   const expiryDate = `${month.padStart(2, '0')}/${year}`;
   const status = getExpiryStatus(expiryDate);
 
-  // Check if we're in edit mode
+  // Check if we're editing a scanned medicine
+  const isEditingScanned = medicineForm.dataset.editingScanned === 'true';
+  const scannedIndex = medicineForm.dataset.editingScannedIndex;
+
+  if (isEditingScanned && scannedIndex !== null && scannedIndex !== undefined) {
+    // UPDATE scanned medicine
+    scannedMedicines[scannedIndex] = {
+      name: name.toUpperCase(),
+      category,
+      expiryDate,
+      quantity: 1
+    };
+
+    // Return to scan tab
+    switchToTab('scan');
+    // Refresh scan results
+    displayScanResults(scannedMedicines);
+    showNotification('Scanned medicine updated successfully', 'success');
+    
+    // Reset form
+    resetForm();
+    return;
+  }
+
+  // Check if we're in edit mode for inventory medicine
   const isEditMode = medicineForm.dataset.editingId !== undefined;
 
   if (isEditMode) {
-    // UPDATE existing medicine
+    // UPDATE existing medicine in inventory
     const medicineId = medicineForm.dataset.editingId;
     const updatedMedicine = {
       name: name.toUpperCase(),
@@ -539,7 +568,7 @@ medicineForm.addEventListener('submit', function (e) {
         }
       });
   } else {
-    // ADD new medicine
+    // ADD new medicine to inventory
     const newMedicine = {
       name: name.toUpperCase(),
       category,
@@ -567,23 +596,31 @@ medicineForm.addEventListener('submit', function (e) {
   }
 });
 
-// Update the resetForm function
+// Reset form
 function resetForm() {
   medicineForm.reset();
   document.getElementById('expiry-month').value = '';
   document.getElementById('expiry-year').value = '';
 
-  // Clear edit mode
+  // Clear edit modes
   delete medicineForm.dataset.editingId;
+  delete medicineForm.dataset.editingScanned;
+  delete medicineForm.dataset.editingScannedIndex;
 
   // Reset button
   const submitBtn = medicineForm.querySelector('button[type="submit"]');
   submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Add Medicine';
   submitBtn.classList.remove('btn-warning');
   submitBtn.classList.add('btn-primary');
+
+  // Hide cancel button
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  if (cancelBtn) {
+    cancelBtn.style.display = 'none';
+  }
 }
 
-// Add cancel edit button functionality (optional but helpful)
+// Add cancel edit button functionality
 function addCancelEditButton() {
   const form = document.getElementById('medicine-form');
   const existingCancelBtn = document.getElementById('cancel-edit-btn');
@@ -602,7 +639,6 @@ function addCancelEditButton() {
 
   cancelBtn.addEventListener('click', () => {
     resetForm();
-    cancelBtn.style.display = 'none';
     showNotification('Edit cancelled', 'info');
   });
 
@@ -611,120 +647,7 @@ function addCancelEditButton() {
   submitBtn.parentNode.insertBefore(cancelBtn, submitBtn.nextSibling);
 }
 
-// Reset form
-function resetForm() {
-  medicineForm.reset();
-  document.getElementById('expiry-month').value = '';
-  document.getElementById('expiry-year').value = '';
-
-  // Clear edit mode
-  delete medicineForm.dataset.editingId;
-
-  // Reset button
-  const submitBtn = medicineForm.querySelector('button[type="submit"]');
-  submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Add Medicine';
-  submitBtn.className = 'btn btn-primary';
-}
-
-// Update resetForm to hide cancel button
-function resetForm() {
-  medicineForm.reset();
-  document.getElementById('expiry-month').value = '';
-  document.getElementById('expiry-year').value = '';
-
-  // Clear edit mode
-  delete medicineForm.dataset.editingId;
-
-  // Reset button
-  const submitBtn = medicineForm.querySelector('button[type="submit"]');
-  submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Add Medicine';
-  submitBtn.className = 'btn btn-primary';
-
-  // Hide cancel button
-  const cancelBtn = document.getElementById('cancel-edit-btn');
-  if (cancelBtn) {
-    cancelBtn.style.display = 'none';
-  }
-}
-
-// Initialize the cancel button when DOM loads
-document.addEventListener('DOMContentLoaded', () => {
-  // ... existing initialization code ...
-
-  // Add cancel edit button
-  addCancelEditButton();
-});
-
-// Add this resetForm function
-function resetForm() {
-  medicineForm.reset();
-  document.getElementById('expiry-month').value = '';
-  document.getElementById('expiry-year').value = '';
-
-  // Remove editing mode
-  delete medicineForm.dataset.editingId;
-
-  // Reset button text
-  const submitBtn = medicineForm.querySelector('button[type="submit"]');
-  submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Add Medicine';
-}
-
-// Remove the old updateMedicine function entirely
-
-function updateMedicine(id, eventHandler) {
-  const name = document.getElementById('medicine-name').value.trim();
-  const category = document.getElementById('medicine-category').value;
-  const month = document.getElementById('expiry-month').value;
-  const year = document.getElementById('expiry-year').value;
-  const quantity = document.getElementById('quantity').value || '1';
-  const notes = document.getElementById('notes').value.trim();
-
-  if (!name || !category || !month || !year) {
-    showNotification('Please fill in all required fields', 'error');
-    return;
-  }
-
-  const expiryDate = `${month.padStart(2, '0')}/${year}`;
-  const status = getExpiryStatus(expiryDate);
-
-  const updatedMedicine = {
-    name: name.toUpperCase(),
-    category,
-    expiryDate,
-    quantity: parseInt(quantity),
-    notes,
-    status,
-    updatedDate: firebase.firestore.FieldValue.serverTimestamp()
-  };
-
-  db.collection('medicines').doc(id).update(updatedMedicine)
-    .then(() => {
-      showNotification('Medicine updated successfully', 'success');
-      medicineForm.reset();
-      document.getElementById('expiry-month').value = '';
-      document.getElementById('expiry-year').value = '';
-
-      // Reset form button
-      const submitBtn = medicineForm.querySelector('button[type="submit"]');
-      submitBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Add Medicine';
-
-      // Remove the update event handler
-      medicineForm.removeEventListener('submit', eventHandler);
-
-      // Restore original submit handler
-      medicineForm.onsubmit = null;
-      medicineForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        medicineForm.dispatchEvent(new Event('submit'));
-      });
-    })
-    .catch((error) => {
-      console.error('Error updating medicine:', error);
-      showNotification('Error updating medicine: ' + error.message, 'error');
-    });
-}
-
-// Delete medicine
+// Delete medicine from inventory
 function deleteMedicine(id) {
   if (confirm('Are you sure you want to delete this medicine?')) {
     db.collection('medicines').doc(id).delete()
@@ -757,9 +680,13 @@ function switchToTab(tabId) {
   });
 }
 
-// OCR Bill Scanning
+// OCR Bill Scanning - Fixed to prevent double scanning
 if (dropZone) {
-  dropZone.addEventListener('click', () => imageInput.click());
+  dropZone.addEventListener('click', () => {
+    if (!isScanning) {
+      imageInput.click();
+    }
+  });
 
   dropZone.addEventListener('dragover', (e) => {
     e.preventDefault();
@@ -777,7 +704,7 @@ if (dropZone) {
     dropZone.style.borderColor = 'var(--gray)';
     dropZone.style.backgroundColor = '#fafafa';
 
-    if (e.dataTransfer.files.length) {
+    if (e.dataTransfer.files.length && !isScanning) {
       imageInput.files = e.dataTransfer.files;
       scanBill();
     }
@@ -785,22 +712,46 @@ if (dropZone) {
 }
 
 if (imageInput) {
+  // Only handle change event, no duplicate triggers
   imageInput.addEventListener('change', () => {
-    if (imageInput.files.length) {
+    if (imageInput.files.length && !isScanning) {
       scanBill();
     }
   });
 }
 
+// Clear scan button
 if (clearScanBtn) {
   clearScanBtn.addEventListener('click', () => {
-    if (imageInput) imageInput.value = '';
-    if (scanResults) scanResults.classList.add('hidden');
-    if (ocrOutput) ocrOutput.innerHTML = '';
-    scannedMedicines = [];
+    clearScanResults();
   });
 }
 
+// Clear scan results function
+function clearScanResults() {
+  // Reset the file input
+  if (imageInput) {
+    imageInput.value = '';
+  }
+  
+  // Clear scan results
+  scannedMedicines = [];
+  if (scanResults) scanResults.classList.add('hidden');
+  if (ocrOutput) ocrOutput.innerHTML = '';
+  if (scanLoading) scanLoading.classList.add('hidden');
+  
+  // Reset drop zone styling
+  if (dropZone) {
+    dropZone.style.borderColor = '';
+    dropZone.style.backgroundColor = '';
+  }
+  
+  isScanning = false;
+  
+  showNotification('Ready to scan another image', 'info');
+}
+
+// Scan bill function
 async function scanBill() {
   const file = imageInput.files[0];
   if (!file) {
@@ -808,16 +759,43 @@ async function scanBill() {
     return;
   }
 
+  // Double-check we're not already scanning
+  if (isScanning) {
+    showNotification('Already scanning an image, please wait...', 'warning');
+    return;
+  }
+
+  // Check file size (optional but good practice)
+  const maxSize = 5 * 1024 * 1024; // 5MB
+  if (file.size > maxSize) {
+    showNotification('Image size should be less than 5MB', 'error');
+    return;
+  }
+
+  isScanning = true;
+  
+  // Update UI
   if (scanLoading) scanLoading.classList.remove('hidden');
   if (scanResults) scanResults.classList.add('hidden');
+  
+  // Disable the drop zone during scan
+  if (dropZone) {
+    dropZone.style.pointerEvents = 'none';
+    dropZone.style.opacity = '0.7';
+  }
 
   try {
     const { data: { text } } = await Tesseract.recognize(
       file,
       'eng',
       {
-        logger: m => console.log(m),
-        tessedit_pageseg_mode: 6
+        logger: m => {
+          // Optional: show progress in console
+          if (m.status === 'recognizing text') {
+            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+          }
+        },
+        tessedit_pageseg_mode: 6 // Assume a single uniform block of text
       }
     );
 
@@ -825,6 +803,7 @@ async function scanBill() {
     scannedMedicines = extractedMedicines;
 
     displayScanResults(extractedMedicines);
+    
     if (scanLoading) scanLoading.classList.add('hidden');
     if (scanResults) scanResults.classList.remove('hidden');
 
@@ -834,6 +813,14 @@ async function scanBill() {
     console.error('OCR Error:', error);
     showNotification('Failed to scan image. Please try again with a clearer image.', 'error');
     if (scanLoading) scanLoading.classList.add('hidden');
+  } finally {
+    isScanning = false;
+    
+    // Re-enable the drop zone
+    if (dropZone) {
+      dropZone.style.pointerEvents = '';
+      dropZone.style.opacity = '';
+    }
   }
 }
 
@@ -875,7 +862,6 @@ function cleanProductName(raw, expiry) {
 
   return result.join(' ');
 }
-
 
 function extractMedicinesFromText(text) {
   const lines = text.split('\n')
@@ -934,7 +920,16 @@ function displayScanResults(medicines) {
   ocrOutput.innerHTML = '';
 
   if (medicines.length === 0) {
-    ocrOutput.innerHTML = '<p class="empty-state">No medicines found in the scanned image.</p>';
+    ocrOutput.innerHTML = `
+      <div class="empty-scan-results">
+        <i class="fas fa-search" style="font-size: 48px; color: #ccc; margin-bottom: 15px;"></i>
+        <h4>No medicines found</h4>
+        <p>Try uploading a clearer image or different bill format.</p>
+        <button class="btn btn-primary" onclick="clearScanResults()">
+          <i class="fas fa-redo"></i> Try Another Image
+        </button>
+      </div>
+    `;
     return;
   }
 
@@ -947,16 +942,66 @@ function displayScanResults(medicines) {
                 <small>Expiry: ${formatExpiryDate(medicine.expiryDate)} | Category: ${medicine.category}</small>
             </div>
             <div class="ocr-actions">
-                <button class="btn btn-primary btn-sm" onclick="addScannedMedicine(${index})">
-                    <i class="fas fa-plus"></i> Add
+                <button class="btn btn-danger btn-sm" onclick="deleteScannedMedicine(${index})" title="Delete this medicine">
+                    <i class="fas fa-trash"></i>
                 </button>
-                <button class="btn btn-secondary btn-sm" onclick="editScannedMedicine(${index})">
+                <button class="btn btn-warning btn-sm" onclick="editScannedMedicine(${index})" title="Edit this medicine">
                     <i class="fas fa-edit"></i>
                 </button>
             </div>
         `;
     ocrOutput.appendChild(item);
   });
+}
+
+function deleteScannedMedicine(index) {
+  if (confirm('Remove this medicine from scan results?')) {
+    scannedMedicines.splice(index, 1);
+    displayScanResults(scannedMedicines);
+    
+    if (scannedMedicines.length === 0) {
+      if (scanResults) scanResults.classList.add('hidden');
+    }
+    
+    showNotification('Medicine removed from scan results', 'info');
+  }
+}
+
+// Edit scanned medicine
+function editScannedMedicine(index) {
+  editingScannedIndex = index;
+  const medicine = scannedMedicines[index];
+  
+  // Switch to manual tab for editing
+  switchToTab('manual');
+  
+  // Populate form with scanned medicine
+  document.getElementById('medicine-name').value = medicine.name;
+  document.getElementById('medicine-category').value = medicine.category;
+  
+  const [month, year] = medicine.expiryDate.split('/');
+  document.getElementById('expiry-month').value = month;
+  document.getElementById('expiry-year').value = year;
+  
+  // Set edit mode for scanned medicine
+  medicineForm.dataset.editingScanned = 'true';
+  medicineForm.dataset.editingScannedIndex = index;
+  
+  // Change button text and add cancel button
+  const submitBtn = medicineForm.querySelector('button[type="submit"]');
+  submitBtn.innerHTML = '<i class="fas fa-save"></i> Save & Return to Scan';
+  submitBtn.className = 'btn btn-warning';
+  
+  // Ensure cancel button is visible
+  const cancelBtn = document.getElementById('cancel-edit-btn');
+  if (cancelBtn) {
+    cancelBtn.style.display = 'inline-block';
+  } else {
+    addCancelEditButton();
+    document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+  }
+  
+  showNotification('Edit the medicine details. Click "Save & Return to Scan" when done.', 'info');
 }
 
 function addScannedMedicine(index) {
@@ -1014,32 +1059,6 @@ function addMedicineToDB(medicine) {
       console.error('Error adding scanned medicine:', error);
       showNotification('Error adding medicine: ' + error.message, 'error');
     });
-}
-
-function editScannedMedicine(index) {
-  const medicine = scannedMedicines[index];
-
-  // Populate form with scanned medicine
-  document.getElementById('medicine-name').value = medicine.name;
-  document.getElementById('medicine-category').value = medicine.category;
-
-  const [month, year] = medicine.expiryDate.split('/');
-  document.getElementById('expiry-month').value = month;
-  document.getElementById('expiry-year').value = year.replace('20', '');
-  
-  // REMOVE or FIX this line:
-  // document.getElementById('quantity').value = medicine.quantity || 1;
-  
-  // Check if quantity field exists before trying to set it
-  const quantityInput = document.getElementById('quantity');
-  if (quantityInput) {
-    quantityInput.value = medicine.quantity || 1;
-  }
-
-  // Switch to manual tab for editing
-  switchToTab('manual');
-
-  showNotification('Scanned medicine loaded into form. Review and save.', 'info');
 }
 
 // Notification system
@@ -1111,6 +1130,9 @@ document.addEventListener('DOMContentLoaded', () => {
   // Initialize year dropdown
   initYearDropdown();
 
+  // Add cancel edit button
+  addCancelEditButton();
+
   // Check if Firebase is initialized
   if (!firebase.apps.length) {
     debugLog('Firebase not initialized, trying to initialize...');
@@ -1137,6 +1159,7 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 });
 
+// Print functionality
 document.getElementById('print-btn').addEventListener('click', () => printInventory('all'));
 document.getElementById('print-expiring-btn').addEventListener('click', () => printInventory('expiring'));
 document.getElementById('print-expired-btn').addEventListener('click', () => printInventory('expired'));
@@ -1242,3 +1265,311 @@ function printInventory(filterType = 'all') {
 
   printWindow.document.close();
 }
+
+// Mobile medicine selection
+function setupMobileTouchEvents() {
+    const medicineRows = document.querySelectorAll('#medicine-table tbody tr');
+    
+    medicineRows.forEach(row => {
+        // Remove any existing click listeners first
+        row.removeEventListener('click', handleRowClick);
+        
+        // Add new click listener
+        row.addEventListener('click', handleRowClick);
+    });
+}
+
+function handleRowClick(event) {
+    // Don't trigger if user clicked directly on a button
+    if (event.target.tagName === 'BUTTON' || 
+        event.target.tagName === 'I' || 
+        event.target.closest('button')) {
+        return;
+    }
+    
+    const row = event.currentTarget;
+    const medicineId = row.querySelector('.edit-btn')?.getAttribute('onclick')?.match(/'([^']+)'/)?.[1];
+    
+    if (medicineId) {
+        const medicine = medicines.find(m => m.id === medicineId);
+        if (medicine) {
+            selectedMedicineId = medicineId;
+            selectedMedicineName = medicine.name;
+            showMobileActionMenu(medicine.name);
+        }
+    }
+}
+
+function showMobileActionMenu(medicineName) {
+    const menu = document.getElementById('mobile-action-menu');
+    const nameElement = document.getElementById('mobile-medicine-name');
+    
+    if (menu && nameElement) {
+        nameElement.textContent = medicineName;
+        menu.classList.remove('hidden');
+        
+        // Prevent body scroll when menu is open
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function closeMobileMenu() {
+    const menu = document.getElementById('mobile-action-menu');
+    if (menu) {
+        menu.classList.add('hidden');
+        document.body.style.overflow = '';
+    }
+    selectedMedicineId = null;
+    selectedMedicineName = null;
+}
+
+function handleMobileEdit() {
+    if (selectedMedicineId) {
+        editMedicine(selectedMedicineId);
+        closeMobileMenu();
+    }
+}
+
+function handleMobileDelete() {
+    if (selectedMedicineId) {
+        if (confirm(`Are you sure you want to delete "${selectedMedicineName}"?`)) {
+            deleteMedicine(selectedMedicineId);
+            closeMobileMenu();
+        }
+    }
+}
+
+// Update the renderMedicines function to set up mobile events
+function renderMedicines() {
+  debugLog('Rendering medicines, count:', medicines.length);
+
+  const statusFilterValue = statusFilter ? statusFilter.value : 'all';
+  const categoryFilterValue = categoryFilter ? categoryFilter.value : 'all';
+  const searchValue = searchInput ? searchInput.value.toLowerCase() : '';
+
+  let filteredMedicines = medicines.filter(medicine => {
+    // Status filter
+    if (statusFilterValue !== 'all') {
+      if (statusFilterValue === 'expired' && medicine.status !== 'expired') return false;
+      if (statusFilterValue === 'expiring' && medicine.status !== 'warning') return false;
+      if (statusFilterValue === 'safe' && medicine.status !== 'ok') return false;
+    }
+
+    // Category filter
+    if (categoryFilterValue !== 'all' && medicine.category !== categoryFilterValue) {
+      return false;
+    }
+
+    // Search filter
+    if (searchValue && !medicine.name.toLowerCase().includes(searchValue)) {
+      return false;
+    }
+
+    return true;
+  });
+
+  // Sort medicines
+  filteredMedicines.sort((a, b) => {
+    let aValue = a[currentSort.field];
+    let bValue = b[currentSort.field];
+
+    if (currentSort.field === 'expiryDate') {
+      aValue = parseExpiryDate(aValue);
+      bValue = parseExpiryDate(bValue);
+    }
+
+    if (currentSort.direction === 'asc') {
+      return aValue > bValue ? 1 : -1;
+    } else {
+      return aValue < bValue ? 1 : -1;
+    }
+  });
+
+  if (!medicineList) {
+    console.error('medicineList element not found!');
+    return;
+  }
+
+  if (filteredMedicines.length === 0) {
+    if (emptyState) emptyState.classList.remove('hidden');
+    medicineList.innerHTML = '';
+    debugLog('No filtered medicines to display');
+  } else {
+    if (emptyState) emptyState.classList.add('hidden');
+    medicineList.innerHTML = '';
+
+    filteredMedicines.forEach(medicine => {
+      const row = document.createElement('tr');
+      row.className = medicine.status === 'expired' ? 'expired-row' :
+        medicine.status === 'warning' ? 'expiring-soon-row' : '';
+      
+      // Add data attribute for mobile touch
+      row.setAttribute('data-medicine-id', medicine.id);
+
+      const statusText = medicine.status === 'expired' ? 'Expired' :
+        medicine.status === 'warning' ? 'Expiring Soon' : 'Safe';
+      const statusClass = medicine.status === 'expired' ? 'status-expired' :
+        medicine.status === 'warning' ? 'status-warning' : 'status-ok';
+
+      row.innerHTML = `
+                <td>${medicine.name || 'Unknown'}</td>
+                <td>${medicine.category || 'Other'}</td>
+                <td>${formatExpiryDate(medicine.expiryDate)}</td>
+                <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+    
+                <td class="action-buttons-cell">
+                    <button class="action-btn edit-btn" onclick="editMedicine('${medicine.id}')" title="Edit">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="action-btn delete-btn" onclick="deleteMedicine('${medicine.id}')" title="Delete">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+      medicineList.appendChild(row);
+    });
+
+    debugLog(`Displayed ${filteredMedicines.length} medicines in table`);
+    
+    // Set up mobile touch events
+    setupMobileTouchEvents();
+  }
+}
+
+// Add this to detect mobile devices
+function isMobileDevice() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+           (window.innerWidth <= 768);
+}
+
+// Update the initialization to check for mobile
+document.addEventListener('DOMContentLoaded', () => {
+  debugLog('DOM loaded, initializing...');
+
+  // Initialize year dropdown
+  initYearDropdown();
+
+  // Add cancel edit button
+  addCancelEditButton();
+
+  // Check if Firebase is initialized
+  if (!firebase.apps.length) {
+    debugLog('Firebase not initialized, trying to initialize...');
+    try {
+      firebase.initializeApp(firebaseConfig);
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+      showNotification('Firebase initialization failed. Check console for details.', 'error');
+    }
+  }
+
+  // Check if user is already logged in
+  const user = auth.currentUser;
+  if (user) {
+    debugLog('User already logged in on page load:', user.email);
+    currentUser = user;
+    userEmail.textContent = user.email;
+    userInfo.classList.remove('hidden');
+    loginPrompt.classList.add('hidden');
+    mainApp.classList.remove('hidden');
+    loadMedicines();
+  } else {
+    debugLog('No user logged in on page load');
+  }
+  
+  // Set up window resize listener to update mobile detection
+  window.addEventListener('resize', () => {
+    // Re-setup touch events when window size changes
+    if (medicineList.children.length > 0) {
+      setTimeout(setupMobileTouchEvents, 100);
+    }
+  });
+});
+
+// Swipe functionality for mobile
+function setupSwipeActions() {
+    if (!isMobileDevice()) return;
+    
+    const rows = document.querySelectorAll('#medicine-table tbody tr');
+    let startX, startY, currentX;
+    let isSwiping = false;
+    
+    rows.forEach(row => {
+        row.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].clientX;
+            startY = e.touches[0].clientY;
+            currentX = startX;
+            isSwiping = false;
+        }, { passive: true });
+        
+        row.addEventListener('touchmove', (e) => {
+            if (!startX || !startY) return;
+            
+            const xDiff = e.touches[0].clientX - startX;
+            const yDiff = e.touches[0].clientY - startY;
+            
+            // Only consider it a swipe if horizontal movement is more than vertical
+            if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > 10) {
+                e.preventDefault();
+                isSwiping = true;
+                
+                currentX = e.touches[0].clientX;
+                const translateX = Math.min(0, Math.max(-100, xDiff));
+                row.style.transform = `translateX(${translateX}px)`;
+                
+                // Show swipe actions
+                row.classList.add('swiping');
+            }
+        }, { passive: false });
+        
+        row.addEventListener('touchend', () => {
+            if (!isSwiping) return;
+            
+            const diff = startX - currentX;
+            
+            // If swiped enough to the left (negative diff), show actions
+            if (diff > 50) {
+                row.style.transform = 'translateX(-80px)';
+            } else {
+                // Reset position
+                row.style.transform = '';
+                row.classList.remove('swiping');
+            }
+            
+            startX = null;
+            startY = null;
+            isSwiping = false;
+        });
+    });
+}
+
+// Update the renderMedicines function to add swipe action buttons
+// In the row.innerHTML, add swipe actions div:
+row.innerHTML = `
+    <td>${medicine.name || 'Unknown'}</td>
+    <td>${medicine.category || 'Other'}</td>
+    <td>${formatExpiryDate(medicine.expiryDate)}</td>
+    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
+
+    <td class="action-buttons-cell">
+        <button class="action-btn edit-btn" onclick="editMedicine('${medicine.id}')" title="Edit">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="action-btn delete-btn" onclick="deleteMedicine('${medicine.id}')" title="Delete">
+            <i class="fas fa-trash"></i>
+        </button>
+    </td>
+    
+    <!-- Swipe actions for mobile -->
+    <div class="swipe-actions">
+        <button class="swipe-action-btn swipe-edit-btn" onclick="editMedicine('${medicine.id}')">
+            <i class="fas fa-edit"></i>
+        </button>
+        <button class="swipe-action-btn swipe-delete-btn" onclick="deleteMedicine('${medicine.id}')">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+`;
+
+// Then call setupSwipeActions() after appending rows
+setupSwipeActions();
